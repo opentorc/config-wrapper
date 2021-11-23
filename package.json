@@ -1,0 +1,14 @@
+{
+  "name": "@opentorc/config-wrapper",
+  "version": "1.0.0",
+  "description": "config management wrapper",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "cwd <cwd@lazybaer.com>",
+  "license": "ISC",
+  "dependencies": {
+    "line-reader": "^0.4.0"
+  }
+}
