@@ -8,7 +8,7 @@ const should = require('chai').should()
 const { envLoader, awsManager } = require('../index')
 const envFile = './tests/.env'
 
-describe('config-wrapper', async () => {
+describe('envLoader', async () => {
   const params = [
     { key: 'key01', value: 'value01' },
     { key: 'key02', value: 'value02' },
@@ -82,14 +82,11 @@ describe('config-wrapper', async () => {
       for (let i = 0; i < testParams.length; i++) {
         process.env[testParams[i].key].should.equal(testParams[i].value)
       }
-      console.log(process.env)
 
       envLoader.remapKeysInEnv('new_', '')
       for (let i = 0; i < testParams2.length; i++) {
         testParams2[i].value.should.equal(process.env[testParams2[i].key])
       }
-      console.log(process.env)
-      
     })
   })
 
@@ -103,7 +100,7 @@ describe('config-wrapper', async () => {
     })
   })
 })
-/*
+
 describe('awsManager', async () => {
   describe('getParameter', async () => {
     it('should get a parameter from AWS', async () => {
@@ -111,8 +108,15 @@ describe('awsManager', async () => {
       console.log(param)
     })
   })
+
+  describe('getParametersByService', async () => {
+    it('should get all the parameters by env and service', async () => {
+      const params = await awsManager.getParametersByService('dev', 'frontend')
+      console.log(params)
+    })
+  })
 })
-*/
+
 
 after(() => {
   console.log('afterAll called')
