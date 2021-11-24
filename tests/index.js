@@ -113,15 +113,29 @@ describe('awsManager', async () => {
   describe('getParameter', async () => {
     it('should get a parameter from AWS', async () => {
       const param = await awsManager.getParameter(env, service, aParams[0].key)
-      console.log(param)
       param.Parameter.Value.should.equal(aParams[0].value)
+    })
+  })
+
+  describe('getParameter with secret', async () => {
+    it('should get a secret parameter from AWS', async () => {
+      const param = await awsManager.getParameter(env, service, aParams[2].key, true)
+      param.Parameter.Value.should.equal(aParams[2].value)
     })
   })
 
   describe('getParametersByService', async () => {
     it('should get all the parameters by env and service', async () => {
       const params = await awsManager.getParametersByService(env, service, true)
-      console.log(params)
+
+      for (let i = 0; i < aParams.length; i++) {
+        const found = params.Parameters.find(param => {
+          return param.Name === `/torc/${env}/${service}/${aParams[i].key}`
+        })
+
+        should.exist(found)
+        found.Value.should.equal(aParams[i].value)
+      }
     })
   })
 })

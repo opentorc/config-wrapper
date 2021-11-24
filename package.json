@@ -1,6 +1,6 @@
 {
   "name": "@opentorc/config-wrapper",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "config management wrapper",
   "main": "index.js",
   "scripts": {
