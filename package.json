@@ -4,7 +4,7 @@
   "description": "config management wrapper",
   "main": "index.js",
   "scripts": {
-    "test": "npx mocha ./tests/*.js  --timeout 20000"
+    "test": "npx mocha ./tests/*.js  --timeout 60000"
   },
   "author": "cwd <cwd@lazybaer.com>",
   "license": "ISC",

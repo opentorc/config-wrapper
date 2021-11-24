@@ -33,6 +33,8 @@ describe('config-wrapper', async () => {
 
   describe('readEnvFile', async () => {
     it('should read a file and return array of values', async () => {
+      const fileParams = await envLoader.readEnvFile(envFile)
+      fileParams.should.deep.equal(params)
     })
   })
 
