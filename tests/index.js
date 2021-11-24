@@ -102,16 +102,25 @@ describe('envLoader', async () => {
 })
 
 describe('awsManager', async () => {
+  const env = 'test'
+  const service = 'config-wrapper'
+  const aParams = [
+    { key: 'testParam01', value: 'value01' },
+    { key: 'testParam02', value: 'value02' },
+    { key: 'secretParam01', value: 'secretValue01' }
+  ]
+
   describe('getParameter', async () => {
     it('should get a parameter from AWS', async () => {
-      const param = await awsManager.getParameter('/torc/dev/frontend/GOOGLE_CLIENT_ID')
+      const param = await awsManager.getParameter(env, service, aParams[0].key)
       console.log(param)
+      param.Parameter.Value.should.equal(aParams[0].value)
     })
   })
 
   describe('getParametersByService', async () => {
     it('should get all the parameters by env and service', async () => {
-      const params = await awsManager.getParametersByService('dev', 'frontend')
+      const params = await awsManager.getParametersByService(env, service, true)
       console.log(params)
     })
   })
