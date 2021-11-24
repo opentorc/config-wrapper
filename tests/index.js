@@ -39,12 +39,26 @@ describe('config-wrapper', async () => {
   })
 
   describe('loadParamsIntoEnv', async () => {
-    it('should read ', async () => {
+    it('should load array into process.env ', async () => {
+      for (let i = 0; i < params.length; i++) {
+        process.env.should.not.have.property(params[i].key)
+      }
+
+      envLoader.loadParamsIntoEnv(params)
+
+      for (let i = 0; i < params.length; i++) {
+        process.env[params[i].key].should.equal(params[i].value)
+      }
     })
   })
 
   describe('loadFileIntoEnv', async () => {
-    it('should read ', async () => {
+    it('should read load a file into process.env', async () => {
+      await envLoader.loadFileIntoEnv(envFile)
+
+      for (let i = 0; i < params.length; i++) {
+        process.env[params[i].key].should.equal(params[i].value)
+      }
     })
   })
 })
