@@ -6,6 +6,7 @@ const assert = require('chai').assert
 const should = require('chai').should()
 
 const { envLoader } = require('../index')
+const envFile = './tests/.env'
 
 describe('config-wrapper', async () => {
   const params = [
@@ -13,8 +14,6 @@ describe('config-wrapper', async () => {
     { key: 'key02', value: 'value02' },
     { key: 'key03', value: 'value03' }
   ]
-
-  const envFile = './tests/.env'
 
   describe('paramsToSourceFile', async () => {
     it('should save array to file', async () => {
@@ -53,7 +52,7 @@ describe('config-wrapper', async () => {
   })
 
   describe('loadFileIntoEnv', async () => {
-    it('should read load a file into process.env', async () => {
+    it('should read & load a file into process.env', async () => {
       await envLoader.loadFileIntoEnv(envFile)
 
       for (let i = 0; i < params.length; i++) {
@@ -61,4 +60,9 @@ describe('config-wrapper', async () => {
       }
     })
   })
+})
+
+after(() => {
+  console.log('afterAll called')
+  fs.unlink(envFile)
 })
