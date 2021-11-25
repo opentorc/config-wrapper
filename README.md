@@ -7,7 +7,19 @@ This module will:
 - store and recall env vars to AWS parameter store based on env and app tags
 
 ### Install
-`npm i`
+`npm i -g @opentorc/config-wrapper`
+
+### CLI Usage
+`config-wrapper --help` 
+#### Commands
+- remapKeysInEnv: take existing env vars and remap them to new env vars. ie: DEV_AWS_ACCESS_KEY_ID -> AWS_ACCESS_KEY_ID
+    * --outfile file to save the new env vars to
+    * --oldprefix prefix to be replaced
+    * --newprefix prefix to replace with
+- saveParamsFile: save params to a file so that they can be loaded in another process via source command
+    * --outfile file to save the aws env vars to
+    * --env aws application environment
+    * --service aws application service
 
 #### Tests
 `npm test` 

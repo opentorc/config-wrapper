@@ -32,7 +32,9 @@ async function getParametersByService(env, service, isEncrypted) {
   return params
 }
 
-// TODO: add param caching and support for labels
+// TODO: add param caching 
+// TODO: add support for labels
+// TODO: add support for saving parameters
 
 module.exports = {
   constructParamPath,
