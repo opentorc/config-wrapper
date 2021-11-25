@@ -5,7 +5,7 @@ const assert = require('chai').assert
 // eslint-disable-next-line no-unused-vars
 const should = require('chai').should()
 
-const { envLoader, awsManager } = require('../index')
+const { envLoader, awsManager } = require('../src/index')
 const envFile = './tests/.env'
 
 describe('envLoader', async () => {
