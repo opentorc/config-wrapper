@@ -16,7 +16,7 @@ function parseArgumentsIntoOptions(rawArgs) {
     '--help': Boolean,
     '-o': '--outfile',
     '-e': '--env',
-    '-a': '--service',
+    '-s': '--service',
     '-h': '--help'
    },{
     argv: rawArgs.slice(2),
@@ -28,8 +28,8 @@ function parseArgumentsIntoOptions(rawArgs) {
   outfile: args['--outfile'] || '',
   oldprefix: args['--oldprefix'] || '',
   newprefix: args['--newprefix'] || '',
-  service: args['--service'] || '',
-  env: args['--env'] || '',
+  service: args['--service'],
+  env: args['--env'],
   help: args['--help'] || false,
   command: args._[0] || ''
  }
@@ -48,6 +48,7 @@ function displayHelp() {
     {bold.blue * --oldprefix} prefix to be replaced
     {bold.blue * --newprefix} prefix to replace with
 {underline.green saveParamsFile:} save params to a file so that they can be loaded in another process via {italic.blue source} command
+    {bold.blue * --outfile} file to save the aws env vars to
     {bold.blue * --env} aws application environment if source is aws
     {bold.blue * --service} aws application service if source is aws
 `)
@@ -59,6 +60,21 @@ async function remapKeysInEnv(config) {
 
 async function saveParamsFile(config) {
   console.log(chalk.green('Saving params file'))
+  const path = configWrapper.awsManager.constructParamPath(config.env, config.service)
+  console.log(chalk.green(`saving '${path}' out to ${config.outfile}`))
+  const results = await configWrapper.awsManager.getParametersByService(config.env, config.service, true)
+
+  if (results?.Parameters?.length > 0) {
+    const params = results.Parameters.map((param) => {
+      return { key: param.Name.replace(`${path}/`,''), value: param.Value }
+    })
+
+    configWrapper.envLoader.paramsToSourceFile(params, config.outfile)
+    console.log(chalk.green(`Saved ${results.Parameters.length} parameters to ${config.outfile}`))
+  } else {
+    console.log(chalk.red('No parameters found'))
+    throw new Error(chalk.red('No parameters found'))
+  }
 }
 
 async function promptForMissingOptions(options) {
@@ -100,7 +116,15 @@ async function promptForMissingOptions(options) {
     }
     case 'saveParamsFile': {
       commandFunc = saveParamsFile
-
+      if (!options.outfile) {
+        questions.push({
+          type: 'input',
+          name: 'outfile',
+          message: 'Output file: ',
+          default: '.env',
+        })
+      }
+  
       if (!options.env) {
         questions.push({
           type: 'input',
