@@ -4,8 +4,12 @@ const ssm = new AWS.SSM();
 
 const BASE_PATH = '/torc'
 
+function constructParamPath(env, service, paramName) {
+  return `${BASE_PATH}/${env}/${service}${paramName?'/'+paramName:''}`
+}
+
 async function getParameter(env, service, paramName, isEncrypted) {
-  const Name = `${BASE_PATH}/${env}/${service}/${paramName}`
+  const Name = constructParamPath(env, service, paramName)
   const params = {
     Name,
     WithDecryption: isEncrypted
@@ -16,7 +20,7 @@ async function getParameter(env, service, paramName, isEncrypted) {
 }
 
 async function getParametersByService(env, service, isEncrypted) {
-  const Path = `${BASE_PATH}/${env}/${service}`
+  const Path = constructParamPath(env, service)
   console.log(`Getting parameters from ${Path}`)
   var config = {
     Path,
@@ -27,6 +31,8 @@ async function getParametersByService(env, service, isEncrypted) {
   const params = await ssm.getParametersByPath(config).promise()
   return params
 }
+
+// TODO: add param caching and support for labels
 
 module.exports = {
   getParameter,
