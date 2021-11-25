@@ -49,13 +49,17 @@ function displayHelp() {
     {bold.blue * --newprefix} prefix to replace with
 {underline.green saveParamsFile:} save params to a file so that they can be loaded in another process via {italic.blue source} command
     {bold.blue * --outfile} file to save the aws env vars to
-    {bold.blue * --env} aws application environment if source is aws
-    {bold.blue * --service} aws application service if source is aws
+    {bold.blue * --env} aws application environment
+    {bold.blue * --service} aws application service
 `)
 }
 
 async function remapKeysInEnv(config) {
   console.log(chalk.green('Remapping keys in env'))
+  const params = configWrapper.envLoader.remapKeysInEnv(config.oldprefix, config.newprefix)
+  console.log(chalk.green(`Saving ${params.length} parameters to ${config.outfile}`))
+  configWrapper.envLoader.paramsToSourceFile(params, config.outfile)
+  console.log(chalk.green(`Saved ${params.length} parameters to ${config.outfile}`))
 }
 
 async function saveParamsFile(config) {
@@ -167,7 +171,6 @@ async function cli(args) {
   console.log(chalk.green(`\n${pkg.name} v${pkg.version}`))
   let options = parseArgumentsIntoOptions(args)
   options = await promptForMissingOptions(options)
-  console.log(options)
 
   if (options) {
     await options.commandFunc(options)
