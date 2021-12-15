@@ -2,7 +2,7 @@
 Wrapper module for managing app configurations w/ AWS param store
 
 This module will:
-- load env vars into a running node process from an array
+- load env vars into a running node process from a key/value pair array
 - create an env var file to `source` against in a CI script
 - store and recall env vars to AWS parameter store based on env and app tags
 

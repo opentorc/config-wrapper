@@ -9,12 +9,16 @@ const configWrapper = require('./index')
 function parseArgumentsIntoOptions(rawArgs) {
   const args = arg({
     '--outfile': String,
+    '--infile': String,
     '--oldprefix': String,
     '--newprefix': String,
     '--env': String,
     '--service': String,
+    '--overwrite': Boolean,
+    '--encrypt': Boolean,
     '--help': Boolean,
     '-o': '--outfile',
+    '-i': '--infile',
     '-e': '--env',
     '-s': '--service',
     '-h': '--help'
@@ -25,14 +29,17 @@ function parseArgumentsIntoOptions(rawArgs) {
   )
 
   return {
-  outfile: args['--outfile'] || '',
-  oldprefix: args['--oldprefix'] || '',
-  newprefix: args['--newprefix'] || '',
-  service: args['--service'],
-  env: args['--env'],
-  help: args['--help'] || false,
-  command: args._[0] || ''
- }
+    outfile: args['--outfile'] || '',
+    infile: args['--infile'] || '',
+    oldprefix: args['--oldprefix'] || '',
+    newprefix: args['--newprefix'] || '',
+    service: args['--service'],
+    overwrite: args['--overwrite'] || false,
+    encrypt: args['--encrypt'] || false,
+    env: args['--env'],
+    help: args['--help'] || false,
+    command: args._[0] || ''
+  }
 }
 
 function displayHelp() {
@@ -51,6 +58,12 @@ function displayHelp() {
     {bold.blue * --outfile} file to save the aws env vars to
     {bold.blue * --env} aws application environment
     {bold.blue * --service} aws application service
+{underline.green putToAWSFromFile:} save params from an env var file into AWS Parameter Store
+    {bold.blue * --infile} file to read the env vars from
+    {bold.blue * --env} aws application environment
+    {bold.blue * --service} aws application service
+    {bold.blue * --overwrite} optional flag to overwrite existing parameters
+    {bold.blue * --encrypt} optional flag to encrypt the parameters
 `)
 }
 
@@ -79,6 +92,19 @@ async function saveParamsFile(config) {
     console.log(chalk.red('No parameters found'))
     throw new Error(chalk.red('No parameters found'))
   }
+}
+
+async function putToAWSFromFile(config) {
+  const { infile, env, service, overwrite, encrypt } = config
+  console.log(chalk.green(`Reading params from file: ${infile}`))
+  const params = await configWrapper.envLoader.readEnvFile(infile)
+  params.forEach((param) => {
+    param.canOverwrite = overwrite
+    param.isEncrypted = encrypt
+  })
+  console.log(chalk.green(`Saving ${params.length} parameters to AWS for "/torc/${env}/${service}"`))
+  const results = await configWrapper.awsManager.setParametersByService(params, env, service)
+  console.log(chalk.green(`Saved ${results.length} parameters to AWS for "/torc/${env}/${service}"`))
 }
 
 async function promptForMissingOptions(options) {
@@ -148,6 +174,36 @@ async function promptForMissingOptions(options) {
       }
       break
     }
+    case 'putToAWSFromFile': {
+      commandFunc = putToAWSFromFile
+      if (!options.infile) {
+        questions.push({
+          type: 'input',
+          name: 'infile',
+          message: 'Input file: ',
+          default: '.env',
+        })
+      }
+
+      if (!options.env) {
+        questions.push({
+          type: 'input',
+          name: 'env',
+          message: 'Environment: ',
+          default: 'dev',
+        })
+      }
+
+      if (!options.service) {
+        questions.push({
+          type: 'input',
+          name: 'service',
+          message: 'Service: ',
+          default: '',
+        })
+      }
+      break
+    }
     default: {
       commandFunc = displayHelp
       return { commandFunc }
@@ -158,6 +214,7 @@ async function promptForMissingOptions(options) {
   return {
     ...options,
     outfile: options.outfile || answers.outfile,
+    infile: options.infile || answers.infile,
     oldprefix: options.oldprefix || answers.oldprefix,
     newprefix: options.newprefix || answers.newprefix,
     source: options.source || answers.source,
