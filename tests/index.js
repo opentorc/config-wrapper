@@ -105,10 +105,26 @@ describe('awsManager', async () => {
   const env = 'test'
   const service = 'config-wrapper'
   const aParams = [
-    { key: 'testParam01', value: 'value01' },
+    { key: 'testParam01', value: 'value01', canOverwrite: true },
     { key: 'testParam02', value: 'value02' },
-    { key: 'secretParam01', value: 'secretValue01' }
+    { key: 'secretParam01', value: 'secretValue01', isEncrypted: true }
   ]
+
+  describe('setParameter', async () => {
+    it('should set a parameter', async () => {
+      aParams.push({ key: 'testParam03', value: 'value03' })
+      const param = await awsManager.setParameter(aParams[3], env, service, false, true)
+      param.Tier.should.equal('Standard')
+      param.Version.should.be.at.least(1)
+    })
+  })
+
+  describe('setParametersByService', async () => { 
+    it('should set parameters by service', async () => {
+      const params = await awsManager.setParametersByService(aParams, env, service)
+      params.should.have.lengthOf(aParams.length)
+    })
+  })
 
   describe('getParameter', async () => {
     it('should get a parameter from AWS', async () => {

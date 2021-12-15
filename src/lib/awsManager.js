@@ -34,10 +34,38 @@ async function getParametersByService(env, service, isEncrypted) {
 
 // TODO: add param caching 
 // TODO: add support for labels
-// TODO: add support for saving parameters
+
+async function setParameter(param, env, service, isEncrypted, canOverwrite) {
+  const Name = constructParamPath(env, service, param.key)
+  const Value = param.value
+  const params = {
+    Name,
+    Value,
+    Type: isEncrypted ? 'SecureString' : 'String',
+    Overwrite: canOverwrite
+  };
+console.log(`Setting parameter ${Name} = ${Value}`)
+  const data = await ssm.putParameter(params).promise()
+  console.log(data)
+  return data
+}
+
+async function setParametersByService(params, env, service) {
+  console.log(`Setting parameters ${JSON.stringify(params)}`)
+  const data = [] 
+
+  for (let i = 0; i < params.length; i++) {
+    const result = setParameter(params[i], env, service, params[i]?.isEncrypted, params[i]?.canOverwrite)
+    data.push(result)
+  }
+
+  return data
+}
 
 module.exports = {
   constructParamPath,
   getParameter,
-  getParametersByService
+  getParametersByService,
+  setParameter,
+  setParametersByService
 }

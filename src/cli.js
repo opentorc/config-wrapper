@@ -167,6 +167,12 @@ async function promptForMissingOptions(options) {
   };
 }
 
+async function paramsToAWSFromFile(filename, env, service) {
+  const params = await configWrapper.envLoader.readEnvFile(filename)
+  await configWrapper.awsManager.putParametersByService(params, env, service)
+}
+
+
 async function cli(args) {
   console.log(chalk.green(`\n${pkg.name} v${pkg.version}`))
   let options = parseArgumentsIntoOptions(args)
