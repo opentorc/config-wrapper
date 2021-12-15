@@ -20,7 +20,7 @@ This module will:
     * --outfile file to save the aws env vars to
     * --env aws application environment
     * --service aws application service
-putToAWSFromFile: save params from an env var file into AWS Parameter Store
+- putToAWSFromFile: save params from an env var file into AWS Parameter Store
     * --infile file to read the env vars from
     * --env aws application environment
     * --service aws application service
