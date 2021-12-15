@@ -20,6 +20,15 @@ This module will:
     * --outfile file to save the aws env vars to
     * --env aws application environment
     * --service aws application service
+putToAWSFromFile: save params from an env var file into AWS Parameter Store
+    * --infile file to read the env vars from
+    * --env aws application environment
+    * --service aws application service
+    * --overwrite optional flag to overwrite existing parameters
+    * --encrypt optional flag to encrypt the parameters
 
 #### Tests
 `npm test` 
+
+#### Note:
+Remember to have an `AWS_REGION` set in your env when running
