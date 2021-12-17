@@ -81,13 +81,14 @@ async function saveParamsFile(config) {
   console.log(chalk.green(`saving '${path}' out to ${config.outfile}`))
   const results = await configWrapper.awsManager.getParametersByService(config.env, config.service, true)
 
-  if (results?.Parameters?.length > 0) {
-    const params = results.Parameters.map((param) => {
-      return { key: param.Name.replace(`${path}/`,''), value: param.Value }
+  if (Object.keys(results)?.length > 0) {
+    const params = Object.keys(results).map((key) => {
+      const param = results[key]
+      return { key: param.name, value: param.value }
     })
 
     configWrapper.envLoader.paramsToSourceFile(params, config.outfile)
-    console.log(chalk.green(`Saved ${results.Parameters.length} parameters to ${config.outfile}`))
+    console.log(chalk.green(`Saved ${Object.keys(results).length} parameters to ${config.outfile}`))
   } else {
     console.log(chalk.red('No parameters found'))
     throw new Error(chalk.red('No parameters found'))
