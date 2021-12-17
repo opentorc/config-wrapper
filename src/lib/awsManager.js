@@ -8,6 +8,20 @@ function constructParamPath(env, service, paramName) {
   return `${BASE_PATH}/${env}/${service}${paramName?'/'+paramName:''}`
 }
 
+function restructureParam(param) {
+  // console.log(`Restructuring parameter ${JSON.stringify(param)}`)
+  const newParam = { 
+    name: param.Name.split('/').pop(), 
+    fullName: param.Name,
+    value: param.Value,
+    version: param.Version,
+    lastModifiedDate: param.LastModifiedDate,
+    type: param.Type
+  }
+
+  return newParam
+}
+
 async function getParameter(env, service, paramName, isEncrypted) {
   const Name = constructParamPath(env, service, paramName)
   const params = {
@@ -16,7 +30,7 @@ async function getParameter(env, service, paramName, isEncrypted) {
   };
 
   const data = await ssm.getParameter(params).promise()
-  return data
+  return restructureParam(data?.Parameter)
 }
 
 async function getParametersByService(env, service, isEncrypted) {
@@ -29,7 +43,15 @@ async function getParametersByService(env, service, isEncrypted) {
   };
 
   const params = await ssm.getParametersByPath(config).promise()
-  return params
+
+  const convertedParams = {}
+
+  for (let i = 0; i < params.Parameters.length; i++) {
+    const param = restructureParam(params.Parameters[i])
+    convertedParams[param.name] = param
+  }
+
+  return convertedParams
 }
 
 // TODO: add param caching 
@@ -44,14 +66,14 @@ async function setParameter(param, env, service, isEncrypted, canOverwrite) {
     Type: isEncrypted ? 'SecureString' : 'String',
     Overwrite: canOverwrite
   };
-console.log(`Setting parameter ${Name} = ${Value}`)
+// console.log(`Setting parameter ${Name} = ${Value}`)
   const data = await ssm.putParameter(params).promise()
   console.log(data)
   return data
 }
 
 async function setParametersByService(params, env, service) {
-  console.log(`Setting parameters ${JSON.stringify(params)}`)
+  // console.log(`Setting parameters ${JSON.stringify(params)}`)
   const data = [] 
 
   for (let i = 0; i < params.length; i++) {
