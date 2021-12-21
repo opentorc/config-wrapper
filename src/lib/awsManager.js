@@ -42,14 +42,23 @@ async function getParametersByService(env, service, isEncrypted) {
     WithDecryption: isEncrypted
   };
 
-  const params = await ssm.getParametersByPath(config).promise()
+  
 
   const convertedParams = {}
+  let nextToken = null
 
-  for (let i = 0; i < params.Parameters.length; i++) {
-    const param = restructureParam(params.Parameters[i])
-    convertedParams[param.name] = param
-  }
+  do {
+    let params = await ssm.getParametersByPath(config).promise()
+
+    for (let i = 0; i < params.Parameters.length; i++) {
+      const param = restructureParam(params.Parameters[i])
+      convertedParams[param.name] = param
+    }
+
+    params = await ssm.getParametersByPath(config).promise()
+    nextToken = params.NextToken
+    config.NextToken = nextToken
+  } while (nextToken)
 
   return convertedParams
 }
