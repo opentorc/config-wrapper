@@ -152,6 +152,24 @@ describe('awsManager', async () => {
       }
     })
   })
+
+  describe('getEnvironments', async () => {
+    it('should get all the environments', async () => {
+      const envs = await awsManager.getEnvironments()
+      console.log(envs)
+      should.exist(envs.test)
+      envs.test.should.equal(4)
+    })
+  })
+
+  describe('getServicesForEnvironment', async () => {
+    it('should get all the servcies in an environment', async () => {
+      const svcs = await awsManager.getServicesForEnvironment('test')
+      console.log(svcs)
+      should.exist(svcs['config-wrapper'])
+      svcs['config-wrapper'].should.equal(4)
+    })
+  })
 })
 
 

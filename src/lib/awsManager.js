@@ -93,10 +93,69 @@ async function setParametersByService(params, env, service) {
   return data
 }
 
+async function getEnvironments() {
+  console.log(`Getting environments descending from ${BASE_PATH}`)
+  var config = {
+    Path: BASE_PATH,
+    Recursive: true
+  };
+
+  const envs = {}
+  let nextToken = null
+
+  do {
+    let params = await ssm.getParametersByPath(config).promise()
+
+    for (let i = 0; i < params.Parameters.length; i++) {
+      const param = params.Parameters[i]
+      const name = param.Name.split('/')
+      const env = name[2]
+      envs[env] = envs[env]? envs[env]+1 : 1
+    }
+
+    params = await ssm.getParametersByPath(config).promise()
+    nextToken = params.NextToken
+    config.NextToken = nextToken
+  } while (nextToken)
+
+  return envs
+}
+
+async function getServicesForEnvironment(env) {
+  const Path = BASE_PATH + '/' + env
+  console.log(`Getting services descending from the environment ${Path}`)
+  var config = {
+    Path,
+    Recursive: true
+  };
+
+  const svcs = {}
+  let nextToken = null
+
+  do {
+    let params = await ssm.getParametersByPath(config).promise()
+
+    for (let i = 0; i < params.Parameters.length; i++) {
+      const param = params.Parameters[i]
+      const name = param.Name.split('/')
+      const svc = name[3]
+      svcs[svc] = svcs[svc] ? svcs[svc] + 1 : 1
+    }
+
+    params = await ssm.getParametersByPath(config).promise()
+    nextToken = params.NextToken
+    config.NextToken = nextToken
+  } while (nextToken)
+
+  return svcs
+}
+
 module.exports = {
   constructParamPath,
   getParameter,
   getParametersByService,
   setParameter,
-  setParametersByService
+  setParametersByService,
+  getEnvironments,
+  getServicesForEnvironment
 }
