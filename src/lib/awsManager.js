@@ -150,6 +150,43 @@ async function getServicesForEnvironment(env) {
   return svcs
 }
 
+async function getAllOrgParams(isEncrypted) {
+  console.log(`Getting all parameters under ${BASE_PATH}`)
+  var config = {
+    Path: BASE_PATH,
+    Recursive: true,
+    WithDecryption: isEncrypted
+  };
+
+  const convertedParams = {}
+  let nextToken = null
+
+  do {
+    let params = await ssm.getParametersByPath(config).promise()
+
+    for (let i = 0; i < params.Parameters.length; i++) {
+      const param = restructureParam(params.Parameters[i])
+      const name = params.Parameters[i].Name.split('/')
+
+      if (!convertedParams[name[2]]) {
+        convertedParams[name[2]] = {}
+      }
+
+      if (!convertedParams[name[2]][name[3]]) {
+        convertedParams[name[2]][name[3]] = {}
+      }
+
+      convertedParams[name[2]][name[3]][param.name] = param
+    }
+
+    params = await ssm.getParametersByPath(config).promise()
+    nextToken = params.NextToken
+    config.NextToken = nextToken
+  } while (nextToken)
+
+  return convertedParams
+}
+
 module.exports = {
   constructParamPath,
   getParameter,
@@ -157,5 +194,6 @@ module.exports = {
   setParameter,
   setParametersByService,
   getEnvironments,
-  getServicesForEnvironment
+  getServicesForEnvironment,
+  getAllOrgParams
 }
