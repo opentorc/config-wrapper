@@ -1,9 +1,11 @@
+const fs = require('fs/promises')
 const arg = require('arg')
 const inquirer = require('inquirer')
 const chalk = require('chalk')
 
 let pkg = require('../package.json');
-const configWrapper = require('./index')
+const configWrapper = require('./index');
+const { mkdir } = require('fs');
 
 
 function parseArgumentsIntoOptions(rawArgs) {
@@ -13,6 +15,7 @@ function parseArgumentsIntoOptions(rawArgs) {
     '--oldprefix': String,
     '--newprefix': String,
     '--env': String,
+    '--folder': String,
     '--service': String,
     '--overwrite': Boolean,
     '--encrypt': Boolean,
@@ -20,6 +23,7 @@ function parseArgumentsIntoOptions(rawArgs) {
     '-o': '--outfile',
     '-i': '--infile',
     '-e': '--env',
+    '-f': '--folder',
     '-s': '--service',
     '-h': '--help'
    },{
@@ -37,6 +41,7 @@ function parseArgumentsIntoOptions(rawArgs) {
     overwrite: args['--overwrite'] || false,
     encrypt: args['--encrypt'] || false,
     env: args['--env'],
+    folder: args['--folder'] || '',
     help: args['--help'] || false,
     command: args._[0] || ''
   }
@@ -64,6 +69,9 @@ function displayHelp() {
     {bold.blue * --service} aws application service
     {bold.blue * --overwrite} optional flag to overwrite existing parameters
     {bold.blue * --encrypt} optional flag to encrypt the parameters
+{underline.green exportAllParams:} export all parameters from AWS Parameter Store to hierachical folders
+    {bold.blue * --folder} folder to save parameters to
+    {bold.blue * --env} optional aws application environment
 `)
 }
 
@@ -107,6 +115,48 @@ async function putToAWSFromFile(config) {
   const results = await configWrapper.awsManager.setParametersByService(params, env, service)
   console.log(chalk.green(`Saved ${results.length} parameters to AWS for "/torc/${env}/${service}"`))
 }
+async function exportAllParams(config) {
+  // console.log(config)
+  const rootFolder = config?.folder || './params'
+  await fs.mkdir(rootFolder, { recursive: true })
+  let params = {}
+  const allParams = await configWrapper.awsManager.getAllOrgParams(true)
+
+  if (config?.env) {
+    Object.keys(allParams).forEach((key) => {
+      if (key === config.env) {
+        console.log(`adding params for: ${key}`)
+        params[key] = allParams[key]
+      }
+    })
+  } else {
+    params = allParams
+  }
+
+  // console.log(params)
+  const envs = Object.keys(params)
+
+  for (let i = 0; i < envs.length; ++i) {
+    const env = envs[i]
+    await fs.mkdir(`${rootFolder}/${env}`)
+    const services = Object.keys(params[env])
+
+    for (let j = 0; j < services.length; ++j) { 
+      const service = services[j]
+      const aEnvVars = []
+      const vars = Object.keys(params[env][service])
+
+      for (let k = 0; k < vars.length; ++k) {
+        const key = vars[k]
+        const param = params[env][service][key]
+        aEnvVars.push(`${key}=${param.value}`)
+      }
+
+      console.log(`writing ${aEnvVars.length} params for ${env}/${service} to ${rootFolder}/${env}/${service}.env`)
+      await fs.writeFile(`${rootFolder}/${env}/${service}.env`, aEnvVars.join('\n'))
+    }
+  }
+ }
 
 async function promptForMissingOptions(options) {
   let commandFunc = null
@@ -201,6 +251,18 @@ async function promptForMissingOptions(options) {
           name: 'service',
           message: 'Service: ',
           default: '',
+        })
+      }
+      break
+    }
+    case 'exportAllParams': {
+      commandFunc = exportAllParams
+      if (!options.folder) {
+        questions.push({
+          type: 'input',
+          name: 'folder',
+          message: 'Folder: ',
+          default: './params',
         })
       }
       break
