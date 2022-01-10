@@ -152,6 +152,36 @@ describe('awsManager', async () => {
       }
     })
   })
+
+  describe('getEnvironments', async () => {
+    it('should get all the environments', async () => {
+      const envs = await awsManager.getEnvironments()
+      console.log(envs)
+      should.exist(envs.test)
+      envs.test.should.equal(4)
+    })
+  })
+
+  describe('getServicesForEnvironment', async () => {
+    it('should get all the services in an environment', async () => {
+      const svcs = await awsManager.getServicesForEnvironment('test')
+      console.log(svcs)
+      should.exist(svcs['config-wrapper'])
+      svcs['config-wrapper'].should.equal(4)
+    })
+  })
+
+  describe('getAllOrgParams', async () => {
+    it('should get all the org parameters', async () => {
+      const params = await awsManager.getAllOrgParams()
+      console.log(params)
+      should.exist(params.test)
+      should.exist(params.test['config-wrapper'])
+      Object.keys(params.test['config-wrapper']).should.have.lengthOf(4)
+      params.test['config-wrapper'].should.have.property('testParam01')
+      params.test['config-wrapper'].should.have.property('secretParam01')
+    })
+  })
 })
 
 
