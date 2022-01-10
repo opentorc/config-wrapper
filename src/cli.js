@@ -69,7 +69,7 @@ function displayHelp() {
     {bold.blue * --service} aws application service
     {bold.blue * --overwrite} optional flag to overwrite existing parameters
     {bold.blue * --encrypt} optional flag to encrypt the parameters
-{underline.green exportAllParams:} export all parameters from AWS Parameter Store to hierachical folders
+{underline.green exportAllParams:} export all parameters from AWS Parameter Store to hierarchical folders
     {bold.blue * --folder} folder to save parameters to
     {bold.blue * --env} optional aws application environment
 `)
