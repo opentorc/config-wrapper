@@ -1,8 +1,14 @@
 const AWS = require('aws-sdk')
 
-const ssm = new AWS.SSM();
+let ssm
 
 const BASE_PATH = '/torc'
+
+function initializeSSM() {
+  if (!ssm) {
+    ssm = new AWS.SSM();
+  }
+}
 
 function constructParamPath(env, service, paramName) {
   return `${BASE_PATH}/${env}/${service}${paramName?'/'+paramName:''}`
@@ -29,6 +35,8 @@ async function getParameter(env, service, paramName, isEncrypted) {
     WithDecryption: isEncrypted
   };
 
+  initializeSSM()
+
   const data = await ssm.getParameter(params).promise()
   return restructureParam(data?.Parameter)
 }
@@ -42,10 +50,10 @@ async function getParametersByService(env, service, isEncrypted) {
     WithDecryption: isEncrypted
   };
 
-  
-
   const convertedParams = {}
   let nextToken = null
+
+  initializeSSM()
 
   do {
     let params = await ssm.getParametersByPath(config).promise()
@@ -76,6 +84,8 @@ async function setParameter(param, env, service, isEncrypted, canOverwrite) {
     Overwrite: canOverwrite
   };
 // console.log(`Setting parameter ${Name} = ${Value}`)
+  initializeSSM()
+
   const data = await ssm.putParameter(params).promise()
   console.log(data)
   return data
@@ -102,6 +112,8 @@ async function getEnvironments() {
 
   const envs = {}
   let nextToken = null
+
+  initializeSSM()
 
   do {
     let params = await ssm.getParametersByPath(config).promise()
@@ -132,6 +144,8 @@ async function getServicesForEnvironment(env) {
   const svcs = {}
   let nextToken = null
 
+  initializeSSM()
+
   do {
     let params = await ssm.getParametersByPath(config).promise()
 
@@ -160,6 +174,8 @@ async function getAllOrgParams(isEncrypted) {
 
   const convertedParams = {}
   let nextToken = null
+
+  initializeSSM()
 
   do {
     let params = await ssm.getParametersByPath(config).promise()
