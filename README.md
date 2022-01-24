@@ -26,7 +26,9 @@ This module will:
     * --service aws application service
     * --overwrite optional flag to overwrite existing parameters
     * --encrypt optional flag to encrypt the parameters
-
+- exportAllParams: export all parameters from AWS Parameter Store to hierarchical folders
+    * --folder folder to save parameters to
+    * --env optional aws application environment
 #### Tests
 `npm test` 
 
