@@ -4,6 +4,8 @@ let ssm
 
 const BASE_PATH = '/torc'
 
+const cachedParams = {}
+
 function initializeSSM() {
   if (!ssm) {
     ssm = new AWS.SSM();
@@ -44,6 +46,12 @@ async function getParameter(env, service, paramName, isEncrypted) {
 async function getParametersByService(env, service, isEncrypted) {
   const Path = constructParamPath(env, service)
   console.log(`Getting parameters from ${Path}`)
+
+  if (cachedParams[Path]) {
+    console.log('Found parameters in cache. Returning...')
+    return cachedParams[Path]
+  }
+
   var config = {
     Path,
     Recursive: true,
@@ -63,10 +71,11 @@ async function getParametersByService(env, service, isEncrypted) {
       convertedParams[param.name] = param
     }
 
-    params = await ssm.getParametersByPath(config).promise()
     nextToken = params.NextToken
     config.NextToken = nextToken
   } while (nextToken)
+
+  cachedParams[Path] = convertedParams
 
   return convertedParams
 }
