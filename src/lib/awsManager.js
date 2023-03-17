@@ -1,6 +1,9 @@
 const AWS = require('aws-sdk')
+const docClient = new AWS.DynamoDB.DocumentClient()
 
 let ssm
+
+let configTable
 
 const BASE_PATH = '/torc'
 
@@ -25,6 +28,20 @@ function restructureParam(param) {
     version: param.Version,
     lastModifiedDate: param.LastModifiedDate,
     type: param.Type
+  }
+
+  return newParam
+}
+
+function mapSharedConfigParam (param) {
+  const newParam = {
+    name: param.name,
+    value: param.value,
+    service: param.service,
+    type: typeof param.value
+    // lastModifiedDate: param.lastModifiedDate
+    // fullName: param.name,
+    // version: param.Version,
   }
 
   return newParam
@@ -74,6 +91,50 @@ async function getParametersByService(env, service, isEncrypted) {
     nextToken = params.NextToken
     config.NextToken = nextToken
   } while (nextToken)
+
+  cachedParams[Path] = convertedParams
+
+  return convertedParams
+}
+
+async function getSharedConfigByService (env, service) {
+  const Path = constructParamPath(env, service)
+  console.log(`Getting SharedConfig from "${service}" service`)
+
+  console.log(`Cache path: ${Path}`)
+  if (cachedParams[Path]) {
+    console.log('Found parameters in cache. Returning...')
+    return cachedParams[Path]
+  }
+
+  if (!configTable) {
+    configTable = await getParameter(env, 'common', 'DYNAMODB_CONFIG_TABLE', true)
+  }
+
+  const params = {
+    TableName: configTable.value,
+    IndexName: 'byService',
+    KeyConditionExpression: 'service = :service',
+    ExpressionAttributeValues: {
+      ':service': service
+    }
+  }
+
+  const convertedParams = {}
+  let nexToken = null
+
+  do {
+    const records = await docClient.query(params).promise()
+
+    for (const record of records.Items) {
+      const param = mapSharedConfigParam(record)
+      convertedParams[param.name] = param
+    }
+
+    nexToken = records.LastEvaluatedKey || null
+
+    params.ExclusiveStartKey = nexToken
+  } while (nexToken)
 
   cachedParams[Path] = convertedParams
 
@@ -216,6 +277,7 @@ module.exports = {
   constructParamPath,
   getParameter,
   getParametersByService,
+  getSharedConfigByService,
   setParameter,
   setParametersByService,
   getEnvironments,
