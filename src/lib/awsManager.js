@@ -141,6 +141,31 @@ async function getSharedConfigByService (env, service) {
   return convertedParams
 }
 
+async function putSharedConfigRecordsByService (fileObj, env, service) {
+  if (!configTable) {
+    configTable = await getParameter(env, 'common', 'DYNAMODB_CONFIG_TABLE', true)
+  }
+
+  for (const key in fileObj) {
+    if (!fileObj[key].value) {
+      console.log(`Skipping ${key} no value provided.`)
+      continue
+    }
+    const params = {
+      TableName: configTable.value,
+      Item: {
+        name: key,
+        service,
+        value: fileObj[key].value
+      }
+    }
+
+    console.log('Create Config record params', JSON.stringify(params, null, 2))
+
+    await docClient.put(params).promise()
+  }
+}
+
 // TODO: add param caching 
 // TODO: add support for labels
 
@@ -278,6 +303,7 @@ module.exports = {
   getParameter,
   getParametersByService,
   getSharedConfigByService,
+  putSharedConfigRecordsByService,
   setParameter,
   setParametersByService,
   getEnvironments,

@@ -103,6 +103,29 @@ async function saveParamsFile(config) {
   }
 }
 
+async function getSharedConfigByService (config) {
+  const { service, env } = config
+
+  console.log(chalk.green(`Getting parameters from Config Table  environment: "${env}" service: "${service}"`))
+
+  const results = await configWrapper.awsManager.getSharedConfigByService(env, service)
+
+  console.log(`Parameters under environment: "${env}" service: "${service}"\n`, JSON.stringify(results, null, 2))
+}
+
+async function putSharedConfigFromFile (config) {
+  const { infile, env, service } = config
+  console.log(chalk.green(`Reading params from file: ${infile}`))
+  const data = await fs.readFile(infile, 'utf8')
+
+  // Parse the JSON data
+  const jsonData = JSON.parse(data)
+
+  console.log(chalk.green(`Saving parameters to Config Table  environment: "${env}" service: "${service}"`))
+  await configWrapper.awsManager.putSharedConfigRecordsByService(jsonData, env, service)
+  console.log(chalk.green(`Saved parameters to Config Table  "environment ${env}" service: "${service}"`))
+}
+
 async function putToAWSFromFile(config) {
   const { infile, env, service, overwrite, encrypt } = config
   console.log(chalk.green(`Reading params from file: ${infile}`))
@@ -221,6 +244,50 @@ async function promptForMissingOptions(options) {
           name: 'service',
           message: 'Service: ',
           default: '',
+        })
+      }
+      break
+    }
+    case 'getSharedConfigByService': {
+      commandFunc = getSharedConfigByService
+
+      if (!options.env) {
+        questions.push({
+          type: 'input',
+          name: 'env',
+          message: 'Environment: ',
+          default: 'devevelop'
+        })
+      }
+
+      if (!options.service) {
+        questions.push({
+          type: 'input',
+          name: 'service',
+          message: 'Service: ',
+          default: ''
+        })
+      }
+      break
+    }
+    case 'putSharedConfigFromFile': {
+      commandFunc = putSharedConfigFromFile
+
+      if (!options.env) {
+        questions.push({
+          type: 'input',
+          name: 'env',
+          message: 'Environment: ',
+          default: 'devevelop'
+        })
+      }
+
+      if (!options.service) {
+        questions.push({
+          type: 'input',
+          name: 'service',
+          message: 'Service: ',
+          default: ''
         })
       }
       break
