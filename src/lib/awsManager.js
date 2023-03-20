@@ -1,9 +1,10 @@
 const AWS = require('aws-sdk')
-const docClient = new AWS.DynamoDB.DocumentClient()
 
 let ssm
 
 let configTable
+
+let docClient
 
 const BASE_PATH = '/torc'
 
@@ -12,6 +13,12 @@ const cachedParams = {}
 function initializeSSM() {
   if (!ssm) {
     ssm = new AWS.SSM();
+  }
+}
+
+function initializeDocClient () {
+  if (!docClient) {
+    docClient = new AWS.DynamoDB.DocumentClient()
   }
 }
 
@@ -45,6 +52,81 @@ function mapSharedConfigParam (param) {
   }
 
   return newParam
+}
+
+/**
+ * Pause execution for ms milliseconds
+ * @param {Number} ms Sleep time
+ */
+async function sleep (ms) {
+  console.log(`Sleeping for ${ms} ms...`)
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+/**
+ * Batch write to Dynamodb with exponential back off
+ * @param {Object} requestItems The batch write request
+ */
+async function batchWrite (requestItems) {
+  let delayTime = 1000 // in ms
+  let resp
+  const timeMultiple = 2
+  const maxRetries = 6
+
+  // Capture the unprocessed items - and based on the config, proceed to invoke this function again after the configured seconds
+  const res1 = await docClient.batchWrite({
+    RequestItems: requestItems
+  }).promise()
+
+  resp = res1
+
+  const tables = Object.keys(res1.UnprocessedItems)
+
+  if (tables.length > 0) {
+    console.log(`Unprocessed items found: ${JSON.stringify(res1.UnprocessedItems)}`)
+  }
+
+  for (let i = 0; i < tables.length; i++) {
+    let unprocessedItems = res1.UnprocessedItems[tables[i]]
+
+    if (unprocessedItems?.length > 0) {
+      let retryAttempt = 0
+
+      while (retryAttempt < maxRetries) {
+        console.log('Retry Attempt: ', retryAttempt, 'delayTime: ', delayTime, 'Max Retries: ', maxRetries)
+        // exponential backoff
+        delayTime = delayTime * timeMultiple
+        await sleep(delayTime)
+
+        // Retry the deletion of the failed items again
+        const res2 = await docClient.batchWrite({
+          RequestItems: {
+            [tables[i]]: unprocessedItems
+          }
+        }).promise()
+
+        resp = res2
+
+        if (Object.keys(res2.UnprocessedItems).length > 0) {
+          console.log(`Unprocessed items found: ${JSON.stringify(res2.UnprocessedItems)}`)
+          unprocessedItems = res2.UnprocessedItems[tables[i]]
+        }
+
+        if (unprocessedItems.length > 0) {
+          retryAttempt++
+        } else {
+          // No more failed items. Quit
+          break
+        }
+      }
+
+      if (unprocessedItems.length > 0) {
+        console.log('Unprocessed items still exist at the end of all the retries')
+        console.log(JSON.stringify(unprocessedItems, null, 2))
+      }
+    }
+  }
+  return resp
 }
 
 async function getParameter(env, service, paramName, isEncrypted) {
@@ -99,13 +181,14 @@ async function getParametersByService(env, service, isEncrypted) {
 
 async function getSharedConfigByService (env, service) {
   const Path = constructParamPath(env, service)
-  console.log(`Getting SharedConfig from "${service}" service`)
 
   console.log(`Cache path: ${Path}`)
   if (cachedParams[Path]) {
     console.log('Found parameters in cache. Returning...')
     return cachedParams[Path]
   }
+
+  initializeDocClient()
 
   if (!configTable) {
     configTable = await getParameter(env, 'common', 'DYNAMODB_CONFIG_TABLE', true)
@@ -141,29 +224,44 @@ async function getSharedConfigByService (env, service) {
   return convertedParams
 }
 
-async function putSharedConfigRecordsByService (fileObj, env, service) {
+async function setSharedConfigByService (params, env, service) {
+  const batchSize = 25
+  const keys = Object.keys(params)
+  const data = []
+
+  initializeDocClient()
+
   if (!configTable) {
     configTable = await getParameter(env, 'common', 'DYNAMODB_CONFIG_TABLE', true)
   }
 
-  for (const key in fileObj) {
-    if (!fileObj[key].value) {
-      console.log(`Skipping ${key} no value provided.`)
-      continue
-    }
-    const params = {
-      TableName: configTable.value,
-      Item: {
+  for (let i = 0; i < keys.length; i += batchSize) {
+    const chunk = keys.slice(i, i + batchSize)
+
+    const batchReqItems = chunk.map(key => {
+      if (!params[key].value) {
+        console.log(`Skipping ${key} no value provided.`)
+      }
+      const item = {
         name: key,
         service,
-        value: fileObj[key].value
+        value: params[key].value
       }
+      return {
+        PutRequest: {
+          Item: item
+        }
+      }
+    })
+
+    const requestItems = {
+      [configTable.value]: batchReqItems
     }
-
-    console.log('Create Config record params', JSON.stringify(params, null, 2))
-
-    await docClient.put(params).promise()
+    console.log('Create Config batch requestItems', JSON.stringify(requestItems, null, 2))
+    const result = await batchWrite(requestItems)
+    data.push(result)
   }
+  return data
 }
 
 // TODO: add param caching 
@@ -303,7 +401,7 @@ module.exports = {
   getParameter,
   getParametersByService,
   getSharedConfigByService,
-  putSharedConfigRecordsByService,
+  setSharedConfigByService,
   setParameter,
   setParametersByService,
   getEnvironments,
