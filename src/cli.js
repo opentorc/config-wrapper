@@ -256,7 +256,7 @@ async function promptForMissingOptions(options) {
           type: 'input',
           name: 'env',
           message: 'Environment: ',
-          default: 'devevelop'
+          default: 'develop'
         })
       }
 
@@ -278,7 +278,7 @@ async function promptForMissingOptions(options) {
           type: 'input',
           name: 'env',
           message: 'Environment: ',
-          default: 'devevelop'
+          default: 'develop'
         })
       }
 
