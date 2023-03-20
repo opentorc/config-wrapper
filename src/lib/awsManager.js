@@ -46,9 +46,6 @@ function mapSharedConfigParam (param) {
     value: param.value,
     service: param.service,
     type: typeof param.value
-    // lastModifiedDate: param.lastModifiedDate
-    // fullName: param.name,
-    // version: param.Version,
   }
 
   return newParam
