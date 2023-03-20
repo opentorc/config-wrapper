@@ -75,7 +75,7 @@ function displayHelp() {
 {underline.green getSharedConfigByService:} get params by service from Config Table.
     {bold.blue * --env} aws application environment
     {bold.blue * --service} aws application service
-    {bold.blue * --outfile} optional flag to save parameters with provided file name, file will be saved as -> {italic.blue "fileName"-"service".json} 
+    {bold.blue * --outfile} optional flag to save parameters with provided file name, file will be saved as -> {italic.blue "fileName"-"service"-config.json} 
 {underline.green putSharedConfigFromFile:} save params from json file into Config Table.
     {bold.blue * --infile} json file to read the params from
     {bold.blue * --env} aws application environment
