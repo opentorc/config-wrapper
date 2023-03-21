@@ -48,6 +48,13 @@ This module will:
       ```
     * --env aws application environment
     * --service aws application service
+
+### NOTE: 
+When `configWrapper.awsManager.getSharedConfigByService()` method is called in a lambda function. Lambda function should have `dynamodb:Query` permission for the Config_Table including Config_Table/index/*
+
+When `configWrapper.awsManager.setSharedConfigByService()` method is called in a lambda function. Lambda function should have `dynamodb:BatchWriteItem` permission for the Config_Table
+
+---
 #### Tests
 `npm test` 
 
