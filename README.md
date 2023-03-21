@@ -28,7 +28,27 @@ This module will:
     * --encrypt optional flag to encrypt the parameters
 - exportAllParams: export all parameters from AWS Parameter Store to hierarchical folders
     * --folder folder to save parameters to
-    * --env optional aws application environment
+    * --env optional aws application 
+- getSharedConfigByService: get params by service from Config Table.
+    * --env aws application environment
+    * --service aws application service
+    * --outfile optional flag to save parameters with provided file name, file will be saved as -> "fileName"-"service"-config.json 
+- putSharedConfigFromFile: save params from json file into Config Table.
+    * --infile json file to read the params from
+      
+      eg:
+
+      `sharedConfig.json` (key represents the name of the parameter)
+      ```json
+        {
+          "USER_TABLE": {
+            "value": "user_table_name"
+           }
+           ...
+        }
+      ```
+    * --env aws application environment
+    * --service aws application service
 #### Tests
 `npm test` 
 
