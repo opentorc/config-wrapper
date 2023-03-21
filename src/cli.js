@@ -72,6 +72,14 @@ function displayHelp() {
 {underline.green exportAllParams:} export all parameters from AWS Parameter Store to hierarchical folders
     {bold.blue * --folder} folder to save parameters to
     {bold.blue * --env} optional aws application environment
+{underline.green getSharedConfigByService:} get params by service from Config Table.
+    {bold.blue * --env} aws application environment
+    {bold.blue * --service} aws application service
+    {bold.blue * --outfile} optional flag to save parameters with provided file name, file will be saved as -> {italic.blue "fileName"-"service"-config.json} 
+{underline.green putSharedConfigFromFile:} save params from json file into Config Table.
+    {bold.blue * --infile} json file to read the params from
+    {bold.blue * --env} aws application environment
+    {bold.blue * --service} aws application service
 `)
 }
 
@@ -101,6 +109,45 @@ async function saveParamsFile(config) {
     console.log(chalk.red('No parameters found'))
     throw new Error(chalk.red('No parameters found'))
   }
+}
+
+async function getSharedConfigByService (config) {
+  const { outfile, service, env } = config
+
+  if (!service) {
+    console.log(chalk.red('Service name is required'))
+    return
+  }
+
+  console.log(chalk.green(`Getting parameters from Config Table  environment: "${env}" service: "${service}"`))
+
+  const results = await configWrapper.awsManager.getSharedConfigByService(env, service)
+
+  console.log(`Parameters under environment: "${env}" service: "${service}"\n`, JSON.stringify(results, null, 2))
+
+  if (outfile) {
+    console.log(`writing to ${outfile}-${service}-config.json`)
+    await fs.writeFile(`${outfile}-${service}-config.json`, JSON.stringify(results, null, 2))
+  }
+}
+
+async function putSharedConfigFromFile (config) {
+  const { infile, env, service } = config
+
+  if (!service) {
+    console.log(chalk.red('Service name is required'))
+    return
+  }
+
+  console.log(chalk.green(`Reading params from file: ${infile}`))
+  const data = await fs.readFile(infile, 'utf8')
+
+  // Parse the JSON data
+  const jsonData = JSON.parse(data)
+
+  console.log(chalk.green(`Saving parameters to Config Table  environment: "${env}" service: "${service}"`))
+  await configWrapper.awsManager.setSharedConfigByService(jsonData, env, service)
+  console.log(chalk.green(`Saved parameters to Config Table  "environment ${env}" service: "${service}"`))
 }
 
 async function putToAWSFromFile(config) {
@@ -221,6 +268,59 @@ async function promptForMissingOptions(options) {
           name: 'service',
           message: 'Service: ',
           default: '',
+        })
+      }
+      break
+    }
+    case 'getSharedConfigByService': {
+      commandFunc = getSharedConfigByService
+
+      if (!options.env) {
+        questions.push({
+          type: 'input',
+          name: 'env',
+          message: 'Environment: ',
+          default: 'develop'
+        })
+      }
+
+      if (!options.service) {
+        questions.push({
+          type: 'input',
+          name: 'service',
+          message: 'Service: ',
+          default: ''
+        })
+      }
+      break
+    }
+    case 'putSharedConfigFromFile': {
+      commandFunc = putSharedConfigFromFile
+
+      if (!options.infile) {
+        questions.push({
+          type: 'input',
+          name: 'infile',
+          message: 'Input file: ',
+          default: 'sharedConfig.json'
+        })
+      }
+
+      if (!options.env) {
+        questions.push({
+          type: 'input',
+          name: 'env',
+          message: 'Environment: ',
+          default: 'develop'
+        })
+      }
+
+      if (!options.service) {
+        questions.push({
+          type: 'input',
+          name: 'service',
+          message: 'Service: ',
+          default: ''
         })
       }
       break

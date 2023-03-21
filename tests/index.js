@@ -5,6 +5,8 @@ const assert = require('chai').assert
 // eslint-disable-next-line no-unused-vars
 const should = require('chai').should()
 
+const AWS = require('aws-sdk-mock')
+
 const { envLoader, awsManager } = require('../src/index')
 const envFile = './tests/.env'
 
@@ -104,6 +106,7 @@ describe('envLoader', async () => {
 describe('awsManager', async () => {
   const env = 'test'
   const service = 'config-wrapper'
+  const shareConfigService = 'shareConfigService'
   const aParams = [
     { key: 'testParam01', value: 'value01', canOverwrite: true },
     { key: 'testParam02', value: 'value02' },
@@ -123,6 +126,34 @@ describe('awsManager', async () => {
     it('should set parameters by service', async () => {
       const params = await awsManager.setParametersByService(aParams, env, service)
       params.should.have.lengthOf(aParams.length)
+    })
+  })
+
+  describe('setSharedConfigByService', async () => {
+    before(function () {
+      AWS.mock('DynamoDB.DocumentClient', 'batchWrite', function (params, callback) {
+        callback(null, { UnprocessedItems: {} })
+      })
+    })
+
+    it('should set DYNAMODB_CONFIG_TABLE parameter', async () => {
+      const configTableParam = { key: 'DYNAMODB_CONFIG_TABLE', value: 'ConfigTable' }
+      const param = await awsManager.setParameter(configTableParam, env, 'common', false, true)
+      param.Tier.should.equal('Standard')
+      param.Version.should.be.at.least(1)
+    })
+
+    it('should create parameters records in Config_Table', async () => {
+      const sharedConfigParams = {
+        DYNAMODB_USER_TABLE_STREAM: { value: 'TABLE_NAME' },
+        ASSESSMENT_CONFIG: { value: { testId: 123459, active: false } }
+      }
+      const params = await awsManager.setSharedConfigByService(sharedConfigParams, env, shareConfigService)
+      params.should.have.lengthOf(1)
+    })
+
+    after(function () {
+      AWS.restore('DynamoDB.DocumentClient', 'batchWrite')
     })
   })
 
@@ -153,12 +184,45 @@ describe('awsManager', async () => {
     })
   })
 
+  describe('getSharedConfigByService', async () => {
+    const getSharedConfigParams = {
+      ASSESSMENT_CONFIG: { name: 'ASSESSMENT_CONFIG', value: { testId: 123459, active: false }, service: 'resolvers', type: 'object' },
+      USER_TABLE: { name: 'USER_TABLE', value: 'table', service: 'resolvers', type: 'string' }
+    }
+    before(function () {
+      AWS.mock('DynamoDB.DocumentClient', 'query', function (params, callback) {
+        callback(null, {
+          Items: [
+            { name: 'ASSESSMENT_CONFIG', service: 'resolvers', value: { testId: 123459, active: false } },
+            { name: 'USER_TABLE', service: 'resolvers', value: 'table' }
+          ],
+          Count: 2,
+          ScannedCount: 2
+        })
+      })
+    })
+    it('should get all the parameters records by service stored in Config_Table', async () => {
+      const params = await awsManager.getSharedConfigByService(env, shareConfigService)
+      console.log(params)
+      for (let i = 0; i < getSharedConfigParams.length; i++) {
+        const found = params[getSharedConfigParams[i].key]
+
+        should.exist(found)
+        found.value.should.equal(getSharedConfigParams[i].value)
+      }
+    })
+
+    after(function () {
+      AWS.restore('DynamoDB.DocumentClient', 'query')
+    })
+  })
+
   describe('getEnvironments', async () => {
     it('should get all the environments', async () => {
       const envs = await awsManager.getEnvironments()
       console.log(envs)
       should.exist(envs.test)
-      envs.test.should.equal(4)
+      envs.test.should.equal(5)
     })
   })
 
