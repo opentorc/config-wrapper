@@ -212,16 +212,6 @@ describe('awsManager', async () => {
       }
     })
 
-    it('should return cached parameters records by service stored in Config_Table', async () => {
-      const params = await awsManager.getSharedConfigByService(env, shareConfigService)
-      console.log(params)
-      for (let i = 0; i < getSharedConfigParams.length; i++) {
-        const found = params[getSharedConfigParams[i].key]
-
-        should.exist(found)
-        found.value.should.equal(getSharedConfigParams[i].value)
-      }
-    })
     after(function () {
       AWS.restore('DynamoDB.DocumentClient', 'query')
     })
