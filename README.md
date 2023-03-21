@@ -44,7 +44,6 @@ This module will:
           "USER_TABLE": {
             "value": "user_table_name"
            }
-           ...
         }
       ```
     * --env aws application environment
