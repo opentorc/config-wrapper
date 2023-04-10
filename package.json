@@ -14,7 +14,7 @@
   "license": "ISC",
   "dependencies": {
     "arg": "^5.0.1",
-    "aws-sdk": "^2.1035.0",
+    "aws-sdk": "^2.1354.0",
     "chalk": "^4.1.2",
     "inquirer": "^8.2.0",
     "line-reader": "^0.4.0"
