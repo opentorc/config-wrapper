@@ -1,4 +1,9 @@
-const AWS = require('aws-sdk')
+const {
+  SSMClient,
+  GetParameterCommand,
+  GetParametersByPathCommand,
+  PutParameterCommand
+} = require('@aws-sdk/client-ssm')
 
 let ssm
 
@@ -6,20 +11,20 @@ const BASE_PATH = '/torc'
 
 const cachedParams = {}
 
-function initializeSSM() {
+function initializeSSM () {
   if (!ssm) {
-    ssm = new AWS.SSM();
+    ssm = new SSMClient()
   }
 }
 
-function constructParamPath(env, service, paramName) {
-  return `${BASE_PATH}/${env}/${service}${paramName?'/'+paramName:''}`
+function constructParamPath (env, service, paramName) {
+  return `${BASE_PATH}/${env}/${service}${paramName ? '/' + paramName : ''}`
 }
 
-function restructureParam(param) {
+function restructureParam (param) {
   // console.log(`Restructuring parameter ${JSON.stringify(param)}`)
-  const newParam = { 
-    name: param.Name.split('/').pop(), 
+  const newParam = {
+    name: param.Name.split('/').pop(),
     fullName: param.Name,
     value: param.Value,
     version: param.Version,
@@ -30,20 +35,22 @@ function restructureParam(param) {
   return newParam
 }
 
-async function getParameter(env, service, paramName, isEncrypted) {
+async function getParameter (env, service, paramName, isEncrypted) {
   const Name = constructParamPath(env, service, paramName)
   const params = {
     Name,
     WithDecryption: isEncrypted
-  };
+  }
 
   initializeSSM()
 
-  const data = await ssm.getParameter(params).promise()
-  return restructureParam(data?.Parameter)
+  const command = new GetParameterCommand(params)
+
+  const response = await ssm.send(command)
+  return restructureParam(response?.Parameter)
 }
 
-async function getParametersByService(env, service, isEncrypted) {
+async function getParametersByService (env, service, isEncrypted) {
   const Path = constructParamPath(env, service)
   console.log(`Getting parameters from ${Path}`)
 
@@ -52,11 +59,11 @@ async function getParametersByService(env, service, isEncrypted) {
     return cachedParams[Path]
   }
 
-  var config = {
+  const params = {
     Path,
     Recursive: true,
     WithDecryption: isEncrypted
-  };
+  }
 
   const convertedParams = {}
   let nextToken = null
@@ -64,15 +71,16 @@ async function getParametersByService(env, service, isEncrypted) {
   initializeSSM()
 
   do {
-    let params = await ssm.getParametersByPath(config).promise()
+    const command = new GetParametersByPathCommand(params)
+    const response = await ssm.send(command)
 
-    for (let i = 0; i < params.Parameters.length; i++) {
-      const param = restructureParam(params.Parameters[i])
+    for (let i = 0; i < response.Parameters.length; i++) {
+      const param = restructureParam(response.Parameters[i])
       convertedParams[param.name] = param
     }
 
-    nextToken = params.NextToken
-    config.NextToken = nextToken
+    nextToken = response.NextToken
+    params.NextToken = nextToken
   } while (nextToken)
 
   cachedParams[Path] = convertedParams
@@ -80,10 +88,10 @@ async function getParametersByService(env, service, isEncrypted) {
   return convertedParams
 }
 
-// TODO: add param caching 
+// TODO: add param caching
 // TODO: add support for labels
 
-async function setParameter(param, env, service, isEncrypted, canOverwrite) {
+async function setParameter (param, env, service, isEncrypted, canOverwrite) {
   const Name = constructParamPath(env, service, param.key)
   const Value = param.value
   const params = {
@@ -91,18 +99,19 @@ async function setParameter(param, env, service, isEncrypted, canOverwrite) {
     Value,
     Type: isEncrypted ? 'SecureString' : 'String',
     Overwrite: canOverwrite
-  };
-// console.log(`Setting parameter ${Name} = ${Value}`)
+  }
+
   initializeSSM()
 
-  const data = await ssm.putParameter(params).promise()
-  console.log(data)
-  return data
+  const command = new PutParameterCommand(params)
+  const response = await ssm.send(command)
+
+  console.log(response)
+  return response
 }
 
-async function setParametersByService(params, env, service) {
-  // console.log(`Setting parameters ${JSON.stringify(params)}`)
-  const data = [] 
+async function setParametersByService (params, env, service) {
+  const data = []
 
   for (let i = 0; i < params.length; i++) {
     const result = setParameter(params[i], env, service, params[i]?.isEncrypted, params[i]?.canOverwrite)
@@ -112,12 +121,12 @@ async function setParametersByService(params, env, service) {
   return data
 }
 
-async function getEnvironments() {
+async function getEnvironments () {
   console.log(`Getting environments descending from ${BASE_PATH}`)
-  var config = {
+  const params = {
     Path: BASE_PATH,
     Recursive: true
-  };
+  }
 
   const envs = {}
   let nextToken = null
@@ -125,30 +134,30 @@ async function getEnvironments() {
   initializeSSM()
 
   do {
-    let params = await ssm.getParametersByPath(config).promise()
+    const command = new GetParametersByPathCommand(params)
+    const response = await ssm.send(command)
 
-    for (let i = 0; i < params.Parameters.length; i++) {
-      const param = params.Parameters[i]
+    for (let i = 0; i < response.Parameters.length; i++) {
+      const param = response.Parameters[i]
       const name = param.Name.split('/')
       const env = name[2]
-      envs[env] = envs[env]? envs[env]+1 : 1
+      envs[env] = envs[env] ? envs[env] + 1 : 1
     }
 
-    params = await ssm.getParametersByPath(config).promise()
-    nextToken = params.NextToken
-    config.NextToken = nextToken
+    nextToken = response.NextToken
+    params.NextToken = nextToken
   } while (nextToken)
 
   return envs
 }
 
-async function getServicesForEnvironment(env) {
+async function getServicesForEnvironment (env) {
   const Path = BASE_PATH + '/' + env
   console.log(`Getting services descending from the environment ${Path}`)
-  var config = {
+  const params = {
     Path,
     Recursive: true
-  };
+  }
 
   const svcs = {}
   let nextToken = null
@@ -156,30 +165,30 @@ async function getServicesForEnvironment(env) {
   initializeSSM()
 
   do {
-    let params = await ssm.getParametersByPath(config).promise()
+    const command = new GetParametersByPathCommand(params)
+    const response = await ssm.send(command)
 
-    for (let i = 0; i < params.Parameters.length; i++) {
-      const param = params.Parameters[i]
+    for (let i = 0; i < response.Parameters.length; i++) {
+      const param = response.Parameters[i]
       const name = param.Name.split('/')
       const svc = name[3]
       svcs[svc] = svcs[svc] ? svcs[svc] + 1 : 1
     }
 
-    params = await ssm.getParametersByPath(config).promise()
-    nextToken = params.NextToken
-    config.NextToken = nextToken
+    nextToken = response.NextToken
+    params.NextToken = nextToken
   } while (nextToken)
 
   return svcs
 }
 
-async function getAllOrgParams(isEncrypted) {
+async function getAllOrgParams (isEncrypted) {
   console.log(`Getting all parameters under ${BASE_PATH}`)
-  var config = {
+  const params = {
     Path: BASE_PATH,
     Recursive: true,
     WithDecryption: isEncrypted
-  };
+  }
 
   const convertedParams = {}
   let nextToken = null
@@ -187,11 +196,12 @@ async function getAllOrgParams(isEncrypted) {
   initializeSSM()
 
   do {
-    let params = await ssm.getParametersByPath(config).promise()
+    const command = new GetParametersByPathCommand(params)
+    const response = await ssm.send(command)
 
-    for (let i = 0; i < params.Parameters.length; i++) {
-      const param = restructureParam(params.Parameters[i])
-      const name = params.Parameters[i].Name.split('/')
+    for (let i = 0; i < response.Parameters.length; i++) {
+      const param = restructureParam(response.Parameters[i])
+      const name = response.Parameters[i].Name.split('/')
 
       if (!convertedParams[name[2]]) {
         convertedParams[name[2]] = {}
@@ -204,9 +214,8 @@ async function getAllOrgParams(isEncrypted) {
       convertedParams[name[2]][name[3]][param.name] = param
     }
 
-    params = await ssm.getParametersByPath(config).promise()
-    nextToken = params.NextToken
-    config.NextToken = nextToken
+    nextToken = response.NextToken
+    params.NextToken = nextToken
   } while (nextToken)
 
   return convertedParams

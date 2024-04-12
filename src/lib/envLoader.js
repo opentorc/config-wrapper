@@ -3,11 +3,11 @@ const fs = require('fs')
 const fsp = require('fs').promises
 const readline = require('readline')
 
-async function readEnvFile(filename) {
+async function readEnvFile (filename) {
   const aParams = []
 
   const rl = readline.createInterface({
-    input: fs.createReadStream(filename),
+    input: fs.createReadStream(filename)
   })
 
   rl.on('line', (line) => {
@@ -28,13 +28,13 @@ async function readEnvFile(filename) {
   return aParams
 }
 
-function loadParamsIntoEnv(params) {
+function loadParamsIntoEnv (params) {
   params.forEach((param) => {
     process.env[param.key] = param.value
   })
 }
 
-function remapKeys(params, prefix, newPrefix) {
+function remapKeys (params, prefix, newPrefix) {
   const aParams = []
 
   for (let i = 0; i < params.length; i++) {
@@ -46,7 +46,7 @@ function remapKeys(params, prefix, newPrefix) {
     }
 
     aParams.push({
-      key: key,
+      key,
       value: param.value
     })
   }
@@ -54,13 +54,13 @@ function remapKeys(params, prefix, newPrefix) {
   return aParams
 }
 
-function remapKeysInEnv(prefix, newPrefix, params) {
-  if (!params) { //CWD -- if no params given then load from current env
+function remapKeysInEnv (prefix, newPrefix, params) {
+  if (!params) { // CWD -- if no params given then load from current env
     params = []
     console.log('loading params from current env')
-    for (key in process.env) {
+    for (const key in process.env) {
       params.push({
-        key: key,
+        key,
         value: process.env[key]
       })
     }
@@ -70,13 +70,13 @@ function remapKeysInEnv(prefix, newPrefix, params) {
   return newParams
 }
 
-async function loadFileIntoEnv(filename) {
+async function loadFileIntoEnv (filename) {
   const params = await readEnvFile(filename)
 
   loadParamsIntoEnv(params)
 }
 
-async function paramsToSourceFile(params, filename) {
+async function paramsToSourceFile (params, filename) {
   const aParams = []
 
   params.forEach((param) => {

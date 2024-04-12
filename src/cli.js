@@ -3,12 +3,10 @@ const arg = require('arg')
 const inquirer = require('inquirer')
 const chalk = require('chalk')
 
-let pkg = require('../package.json');
-const configWrapper = require('./index');
-const { mkdir } = require('fs');
+const pkg = require('../package.json')
+const configWrapper = require('./index')
 
-
-function parseArgumentsIntoOptions(rawArgs) {
+function parseArgumentsIntoOptions (rawArgs) {
   const args = arg({
     '--outfile': String,
     '--infile': String,
@@ -26,11 +24,10 @@ function parseArgumentsIntoOptions(rawArgs) {
     '-f': '--folder',
     '-s': '--service',
     '-h': '--help'
-   },{
+  }, {
     argv: rawArgs.slice(2),
     permissive: true
-   }
-  )
+  })
 
   return {
     outfile: args['--outfile'] || '',
@@ -47,12 +44,12 @@ function parseArgumentsIntoOptions(rawArgs) {
   }
 }
 
-function displayHelp() {
+function displayHelp () {
   console.log(chalk.green.bgRed.bold('HJAAALP!'))
-/*
-{underline.green loadParamsIntoEnv:} load up parameters into the current process environment as env vars
-    {bold.blue * --source:} aws || filename (default: aws)
-*/
+  /*
+  {underline.green loadParamsIntoEnv:} load up parameters into the current process environment as env vars
+      {bold.blue * --source:} aws || filename (default: aws)
+  */
   console.log(chalk`
 {bold.red COMMANDS:}
 {underline.green remapKeysInEnv:} take {italic.red existing env vars} and remap them to {italic.red new env vars}. ie: {italic.blue DEV_AWS_ACCESS_KEY_ID} -> {italic.blue AWS_ACCESS_KEY_ID}
@@ -75,7 +72,7 @@ function displayHelp() {
 `)
 }
 
-async function remapKeysInEnv(config) {
+async function remapKeysInEnv (config) {
   console.log(chalk.green('Remapping keys in env'))
   const params = configWrapper.envLoader.remapKeysInEnv(config.oldprefix, config.newprefix)
   console.log(chalk.green(`Saving ${params.length} parameters to ${config.outfile}`))
@@ -83,7 +80,7 @@ async function remapKeysInEnv(config) {
   console.log(chalk.green(`Saved ${params.length} parameters to ${config.outfile}`))
 }
 
-async function saveParamsFile(config) {
+async function saveParamsFile (config) {
   console.log(chalk.green('Saving params file'))
   const path = configWrapper.awsManager.constructParamPath(config.env, config.service)
   console.log(chalk.green(`saving '${path}' out to ${config.outfile}`))
@@ -103,7 +100,7 @@ async function saveParamsFile(config) {
   }
 }
 
-async function putToAWSFromFile(config) {
+async function putToAWSFromFile (config) {
   const { infile, env, service, overwrite, encrypt } = config
   console.log(chalk.green(`Reading params from file: ${infile}`))
   const params = await configWrapper.envLoader.readEnvFile(infile)
@@ -115,7 +112,7 @@ async function putToAWSFromFile(config) {
   const results = await configWrapper.awsManager.setParametersByService(params, env, service)
   console.log(chalk.green(`Saved ${results.length} parameters to AWS for "/torc/${env}/${service}"`))
 }
-async function exportAllParams(config) {
+async function exportAllParams (config) {
   // console.log(config)
   const rootFolder = config?.folder || './params'
   await fs.mkdir(rootFolder, { recursive: true })
@@ -141,7 +138,7 @@ async function exportAllParams(config) {
     await fs.mkdir(`${rootFolder}/${env}`)
     const services = Object.keys(params[env])
 
-    for (let j = 0; j < services.length; ++j) { 
+    for (let j = 0; j < services.length; ++j) {
       const service = services[j]
       const aEnvVars = []
       const vars = Object.keys(params[env][service])
@@ -156,9 +153,9 @@ async function exportAllParams(config) {
       await fs.writeFile(`${rootFolder}/${env}/${service}.env`, aEnvVars.join('\n'))
     }
   }
- }
+}
 
-async function promptForMissingOptions(options) {
+async function promptForMissingOptions (options) {
   let commandFunc = null
 
   const questions = []
@@ -172,7 +169,7 @@ async function promptForMissingOptions(options) {
           type: 'input',
           name: 'outfile',
           message: 'Output file: ',
-          default: '.env',
+          default: '.env'
         })
       }
 
@@ -181,7 +178,7 @@ async function promptForMissingOptions(options) {
           type: 'input',
           name: 'oldprefix',
           message: 'Prefix to replace: ',
-          default: 'DEV_',
+          default: 'DEV_'
         })
       }
 
@@ -189,8 +186,8 @@ async function promptForMissingOptions(options) {
         questions.push({
           type: 'input',
           name: 'newprefix',
-          message: 'Replacing previx (can be blank): ',
-          default: '',
+          message: 'Replacing prefix (can be blank): ',
+          default: ''
         })
       }
       break
@@ -202,16 +199,16 @@ async function promptForMissingOptions(options) {
           type: 'input',
           name: 'outfile',
           message: 'Output file: ',
-          default: '.env',
+          default: '.env'
         })
       }
-  
+
       if (!options.env) {
         questions.push({
           type: 'input',
           name: 'env',
           message: 'Environment: ',
-          default: 'dev',
+          default: 'dev'
         })
       }
 
@@ -220,7 +217,7 @@ async function promptForMissingOptions(options) {
           type: 'input',
           name: 'service',
           message: 'Service: ',
-          default: '',
+          default: ''
         })
       }
       break
@@ -232,7 +229,7 @@ async function promptForMissingOptions(options) {
           type: 'input',
           name: 'infile',
           message: 'Input file: ',
-          default: '.env',
+          default: '.env'
         })
       }
 
@@ -241,7 +238,7 @@ async function promptForMissingOptions(options) {
           type: 'input',
           name: 'env',
           message: 'Environment: ',
-          default: 'dev',
+          default: 'dev'
         })
       }
 
@@ -250,7 +247,7 @@ async function promptForMissingOptions(options) {
           type: 'input',
           name: 'service',
           message: 'Service: ',
-          default: '',
+          default: ''
         })
       }
       break
@@ -262,7 +259,7 @@ async function promptForMissingOptions(options) {
           type: 'input',
           name: 'folder',
           message: 'Folder: ',
-          default: './params',
+          default: './params'
         })
       }
       break
@@ -284,10 +281,10 @@ async function promptForMissingOptions(options) {
     service: options.service || answers.service,
     env: options.env || answers.env,
     commandFunc
-  };
+  }
 }
 
-async function cli(args) {
+async function cli (args) {
   console.log(chalk.green(`\n${pkg.name} v${pkg.version}`))
   let options = parseArgumentsIntoOptions(args)
   options = await promptForMissingOptions(options)
