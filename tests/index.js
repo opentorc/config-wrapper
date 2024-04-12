@@ -1,3 +1,4 @@
+/* globals describe, it, after */
 const fs = require('fs').promises
 
 // eslint-disable-next-line no-unused-vars
@@ -119,7 +120,7 @@ describe('awsManager', async () => {
     })
   })
 
-  describe('setParametersByService', async () => { 
+  describe('setParametersByService', async () => {
     it('should set parameters by service', async () => {
       const params = await awsManager.setParametersByService(aParams, env, service)
       params.should.have.lengthOf(aParams.length)
@@ -183,7 +184,6 @@ describe('awsManager', async () => {
     })
   })
 })
-
 
 after(() => {
   console.log('afterAll called')
