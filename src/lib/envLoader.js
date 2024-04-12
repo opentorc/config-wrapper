@@ -3,6 +3,26 @@ const fs = require('fs')
 const fsp = require('fs').promises
 const readline = require('readline')
 
+/**
+ * If a value starts and ends with single quote AND contains special characters,
+ * this will remove the quote and unescape the special characters
+ * @param {String} value The value to unquote
+ */
+function unquoteIfSpecialChars (value) {
+  if (value.startsWith("'") && value.endsWith("'")) {
+    let content = value.slice(1, -1)
+    // Unescape any single quotes within the content
+    content = content.replace(/'\\''/g, "'")
+    // Check for special characters inside the original content
+    const specialCharsRegex = /[$\\"!` ]/
+    if (specialCharsRegex.test(content)) {
+      return content
+    }
+  }
+
+  return value
+}
+
 async function readEnvFile (filename) {
   const aParams = []
 
@@ -18,7 +38,7 @@ async function readEnvFile (filename) {
     if (aLine.length === 2) {
       aParams.push({
         key: aLine[0],
-        value: aLine[1]
+        value: unquoteIfSpecialChars(aLine[1])
       })
     }
   })
@@ -76,11 +96,26 @@ async function loadFileIntoEnv (filename) {
   loadParamsIntoEnv(params)
 }
 
+/**
+ * Returns the value in single quote if it contains special characters
+ * else returns the value as is
+ * @param {String} value The value to quote
+ */
+function quoteIfSpecialChars (value) {
+  const specialCharsRegex = /[$\\"!` ]/
+
+  if (specialCharsRegex.test(value)) {
+    return `'${value.replace(/'/g, "'\\''")}'`
+  } else {
+    return value
+  }
+}
+
 async function paramsToSourceFile (params, filename) {
   const aParams = []
 
   params.forEach((param) => {
-    aParams.push(`${param.key}=${param.value}`)
+    aParams.push(`${param.key}=${quoteIfSpecialChars(param.value)}`)
   })
 
   const paramsToString = aParams.join('\n')
