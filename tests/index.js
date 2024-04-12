@@ -13,7 +13,10 @@ describe('envLoader', async () => {
   const params = [
     { key: 'key01', value: 'value01' },
     { key: 'key02', value: 'value02' },
-    { key: 'key03', value: 'value03' }
+    { key: 'key03', value: 'value03' },
+    { key: 'key04', value: 'special$code' },
+    { key: 'key05', value: '"quoted"' },
+    { key: 'key06', value: '`code`!' }
   ]
 
   describe('paramsToSourceFile', async () => {
@@ -26,7 +29,14 @@ describe('envLoader', async () => {
       for (let i = 0; i < aParams.length; i++) {
         const aLine = aParams[i].split('=')
         aLine[0].should.equal(params[i].key)
-        aLine[1].should.equal(params[i].value)
+
+        const specialCharsRegex = /[$\\"!` ]/
+
+        if (specialCharsRegex.test(aLine[1])) {
+          aLine[1].should.equal(`'${params[i].value}'`)
+        } else {
+          aLine[1].should.equal(params[i].value)
+        }
       }
     })
   })
@@ -57,7 +67,10 @@ describe('envLoader', async () => {
       const testParams = [
         { key: 'new_key_01', value: 'value01' },
         { key: 'new_key_02', value: 'value02' },
-        { key: 'new_key_03', value: 'value03' }
+        { key: 'new_key_03', value: 'value03' },
+        { key: 'new_key_04', value: 'special$code' },
+        { key: 'new_key_05', value: '"quoted"' },
+        { key: 'new_key_06', value: '`code`!' }
       ]
       const remapped = envLoader.remapKeys(params, 'key', 'new_key_')
       remapped.should.deep.equal(testParams)
@@ -69,12 +82,18 @@ describe('envLoader', async () => {
       const testParams = [
         { key: 'new_key_01', value: 'value01' },
         { key: 'new_key_02', value: 'value02' },
-        { key: 'new_key_03', value: 'value03' }
+        { key: 'new_key_03', value: 'value03' },
+        { key: 'new_key_04', value: 'special$code' },
+        { key: 'new_key_05', value: '"quoted"' },
+        { key: 'new_key_06', value: '`code`!' }
       ]
       const testParams2 = [
         { key: 'key_01', value: 'value01' },
         { key: 'key_02', value: 'value02' },
-        { key: 'key_03', value: 'value03' }
+        { key: 'key_03', value: 'value03' },
+        { key: 'new_key_04', value: 'special$code' },
+        { key: 'new_key_05', value: '"quoted"' },
+        { key: 'new_key_06', value: '`code`!' }
       ]
 
       const remapped = envLoader.remapKeysInEnv('key', 'new_key_', params)
